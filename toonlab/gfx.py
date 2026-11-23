@@ -6,7 +6,7 @@ import numpy as np
 import skia
 
 ASSETS = Path(__file__).resolve().parent.parent / "assets"
-INK = (28, 22, 36)
+INK = (52, 36, 66)
 
 
 def C(c, a=255):

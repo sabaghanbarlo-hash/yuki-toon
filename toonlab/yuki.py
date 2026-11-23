@@ -754,3 +754,238 @@ def _arm(cv, lk, st, side, wiggle):
     cuff0 = (wr[0] - d2[0] * 14, wr[1] - d2[1] * 14)
     tube(cv, [cuff0, (wr[0] + d2[0] * 2, wr[1] + d2[1] * 2)], 45, shade(col, -0.16), 4.2)   # ribbed cuff
     _hand(cv, lk, hk, wr, d2, side)
+
+
+# ====================================================================== v3: softer, more anime
+OW = 3.4
+LINE = (52, 36, 66)          # plum line-art instead of near-black: softer, prettier
+
+
+def _grad(x0, y0, x1, y1, c0, c1, a=255):
+    p = skia.Paint(AntiAlias=True)
+    p.setShader(skia.GradientShader.MakeLinear([(x0, y0), (x1, y1)], [C(c0, a), C(c1, a)]))
+    return p
+
+
+def head_path():
+    pts = [(0, -134), (92, -112), (142, -40), (146, 30), (126, 86), (78, 122), (30, 138), (0, 140),
+           (-30, 138), (-78, 122), (-126, 86), (-146, 30), (-142, -40), (-92, -112)]
+    return smooth_closed(pts, 1.0)
+
+
+def _hair_fill(cv, lk, path):
+    top = shade(lk.hair, -0.12)
+    bot = mix(lk.hair, lk.hair_hi, 0.38)
+    cv.drawPath(path, _grad(0, -180, 0, 100, top, bot))
+
+
+def _hair_back(cv, lk, st):
+    if lk.style != "bob":
+        return _old_hair_back(cv, lk, st)
+    p = skia.Path()
+    p.moveTo(-156, -26)
+    p.cubicTo(-176, 30, -174, 96, -152, 126)
+    p.quadTo(-110, 140, -66, 116)
+    p.quadTo(0, 100, 66, 116)
+    p.quadTo(110, 140, 156, 128)
+    p.cubicTo(174, 96, 176, 30, 156, -26)
+    p.close()
+    cv.drawPath(p, _grad(0, -20, 0, 130, shade(lk.hair, -0.25), shade(lk.hair, -0.02)))
+    cv.drawPath(p, line_paint(LINE, OW))
+
+
+def _fringe_path():
+    p = skia.Path()
+    p.moveTo(-154, -22)
+    p.cubicTo(-178, -136, -84, -186, 0, -184)
+    p.cubicTo(84, -186, 178, -136, 154, -22)
+    p.cubicTo(166, 24, 164, 70, 150, 108)                      # right side lock, long and tapered
+    p.quadTo(134, 60, 128, 0)
+    p.quadTo(128, -32, 112, -50)
+    p.quadTo(104, -78, 84, -88)                                # swept bangs
+    p.quadTo(78, -54, 58, -46)
+    p.quadTo(60, -80, 34, -94)
+    p.quadTo(26, -56, 2, -46)
+    p.quadTo(6, -80, -22, -96)
+    p.quadTo(-36, -58, -62, -50)
+    p.quadTo(-58, -78, -90, -90)
+    p.quadTo(-104, -56, -122, -42)
+    p.quadTo(-128, -20, -130, 0)
+    p.quadTo(-136, 60, -150, 108)
+    p.cubicTo(-166, 70, -168, 24, -154, -22)
+    p.close()
+    return p
+
+
+def _fringe(cv, lk, st):
+    if lk.style != "bob":
+        return _old_fringe(cv, lk, st)
+    c, hi = lk.hair, lk.hair_hi
+    p = _fringe_path()
+    _hair_fill(cv, lk, p)
+    cv.save()
+    cv.clipPath(p, skia.ClipOp.kIntersect, True)
+    # glossy "angel ring" highlight + soft secondary shine
+    ring = smooth_open([(-100, -122), (-56, -150), (14, -156), (74, -142)], 0.9)
+    cv.drawPath(ring, line_paint((226, 232, 255), 9, 150))
+    cv.drawPath(smooth_open([(94, -132), (116, -108)], 0.5), line_paint((226, 232, 255), 6, 110))
+    # darker strand lines flowing from the crown
+    for x0, y0, x1, y1 in ((-70, -170, -86, -96), (-20, -178, -28, -104), (30, -178, 38, -106), (80, -166, 100, -100)):
+        cv.drawPath(smooth_open([(x0, y0), ((x0 + x1) / 2 + 6, (y0 + y1) / 2), (x1, y1)], 0.8), line_paint(shade(c, -0.35), 2.6, 60))
+    cv.restore()
+    cv.drawPath(p, line_paint(LINE, OW))
+    a = skia.Path()
+    a.moveTo(-4, -178)
+    a.quadTo(10, -218, 52, -214)
+    a.quadTo(28, -200, 22, -176)
+    a.close()
+    cv.drawPath(a, fill_paint(shade(c, -0.05)))
+    cv.drawPath(a, line_paint(LINE, OW))
+
+
+def _brows(cv, lk, st, fd, gx):
+    b = fd["brow"]
+    if len(b) == 2:
+        b = (b[0], b[1], b[0], b[1])
+    lift_l, ang_l, lift_r, ang_r = b
+    lift_l += st.beat * 4
+    lift_r += st.beat * 4
+    for sx, lift, ang in ((-1, lift_l, ang_l), (1, lift_r, ang_r)):
+        cx, cy = sx * 62 + gx * 6, -22 - lift
+        a = math.radians(ang)
+        dx = 19
+        inner = (cx - sx * dx * math.cos(a), cy + dx * math.sin(a))
+        outer = (cx + sx * dx * math.cos(a), cy - dx * math.sin(a))
+        mid = ((inner[0] + outer[0]) / 2, (inner[1] + outer[1]) / 2 - 4)
+        cv.drawPath(smooth_open([inner, mid, outer], 0.8), line_paint(shade(lk.hair, -0.1), 5.2))
+
+
+def _eyes(cv, lk, st, fd, gx, gy):
+    kind = fd["eye"]
+    if kind not in ("open", "tear", "sparkle", "wide", "small") or (st.blink and st.blink > 0):
+        return _old_eyes(cv, lk, st, fd, gx, gy)
+    ey = 14
+    for sx in (-1, 1):
+        ex = sx * 62 + gx * 7
+        y = ey + gy * 5
+        rx, ry = {"open": (29, 38), "tear": (30, 39), "sparkle": (31, 41), "wide": (32, 44), "small": (20, 25)}[kind]
+        eye = skia.Path.Oval(skia.Rect.MakeLTRB(ex - rx, y - ry, ex + rx, y + ry))
+        cv.save()
+        cv.clipPath(eye, skia.ClipOp.kIntersect, True)
+        cv.drawPaint(_grad(0, y - ry, 0, y + ry, (36, 24, 72), (120, 96, 214)))
+        # lower glow of the iris
+        cv.drawOval(skia.Rect.MakeLTRB(ex - rx * 0.78 + gx * 2, y + ry * 0.12, ex + rx * 0.78 + gx * 2, y + ry * 1.35), fill_paint((176, 214, 255), 150))
+        cv.drawOval(skia.Rect.MakeLTRB(ex - rx * 0.32 + gx * 2, y - ry * 0.22, ex + rx * 0.32 + gx * 2, y + ry * 0.38), fill_paint((24, 16, 44), 215))   # pupil
+        cv.restore()
+        # big window highlight + small sparkle
+        cv.drawOval(skia.Rect.MakeLTRB(ex - rx * 0.62 + gx * 2, y - ry * 0.7, ex - rx * 0.02 + gx * 2, y - ry * 0.1), fill_paint((255, 255, 255)))
+        cv.drawCircle(ex + rx * 0.36 + gx * 2, y + ry * 0.46, rx * 0.15, fill_paint((255, 255, 255), 240))
+        cv.drawCircle(ex + rx * 0.12 + gx * 2, y + ry * 0.62, rx * 0.075, fill_paint((255, 255, 255), 220))
+        if kind == "sparkle":
+            cv.drawCircle(ex - rx * 0.1, y - ry * 0.02, rx * 0.12, fill_paint((255, 255, 255), 230))
+        if kind == "tear":
+            cv.drawOval(skia.Rect.MakeLTRB(ex - rx, y + ry - 6, ex + rx, y + ry + 12), fill_paint((170, 220, 255), 225))
+        # upper lid: thick lash line with a wing, and a faint double-lid crease
+        lash = smooth_open([(ex - rx - 1, y + 6), (ex - rx * 0.72, y - ry * 0.8), (ex, y - ry - 3), (ex + rx * 0.72, y - ry * 0.8), (ex + rx + 1, y + 6)], 0.9)
+        cv.drawPath(lash, line_paint(LINE, 8.5))
+        wing = smooth_open([(ex + sx * (rx + 1), y + 2), (ex + sx * (rx + 9), y - 6), (ex + sx * (rx + 16), y - 12)], 0.7)
+        cv.drawPath(wing, line_paint(LINE, 5.2))
+        cv.drawPath(smooth_open([(ex - rx * 0.7, y - ry - 8), (ex, y - ry - 14), (ex + rx * 0.7, y - ry - 8)], 0.9), line_paint(LINE, 2.4, 120))
+        cv.drawPath(smooth_open([(ex - rx * 0.6, y + ry + 2), (ex, y + ry + 6), (ex + rx * 0.6, y + ry + 2)], 0.9), line_paint(LINE, 2.2, 140))
+        if lk.glasses:
+            r = 42
+            cv.drawCircle(ex, y, r, fill_paint((255, 255, 255), 40))
+            cv.drawCircle(ex, y, r, line_paint(LINE, 4.5))
+    if lk.glasses:
+        cv.drawLine(-24 + gx * 7, 12, 24 + gx * 7, 12, line_paint(LINE, 4.5))
+
+
+def draw_head(cv, lk, st):
+    fd = face_def(st.face)
+    gx, gy = st.gx + st.prof * 0.8, st.gy
+    cv.save()
+    cv.translate(0, 120)
+    cv.rotate(st.tilt)
+    cv.translate(0, -120)
+    _hair_back(cv, lk, st)
+    hp = head_path()
+    cv.save()
+    cv.translate(st.prof * 8, 0)
+    cv.drawPath(hp, fill_paint(lk.skin))
+    cv.save()
+    cv.clipPath(hp, skia.ClipOp.kIntersect, True)
+    if lk.style == "bob":      # cel shadow cast by the fringe + under the chin
+        cv.save()
+        cv.translate(0, 9)
+        cv.drawPath(_fringe_path(), fill_paint(shade(lk.skin, -0.075), 255))
+        cv.restore()
+    cv.restore()
+    cv.drawPath(hp, line_paint(LINE, OW + 0.4))
+    b = fd.get("blush", 0.3)
+    if b > 0.02:
+        for sx in (-1, 1):
+            cx, cy = sx * 92, 74
+            cv.drawOval(skia.Rect.MakeLTRB(cx - 26, cy - 13, cx + 26, cy + 13), fill_paint(lk.blush, int(150 * min(1, b))))
+            for k in (-1, 0, 1):
+                cv.drawLine(cx + k * 9 - 3, cy - 6, cx + k * 9 + 3, cy + 6, line_paint(shade(lk.blush, -0.15), 2.6, int(170 * min(1, b))))
+    cv.save()
+    cv.translate(st.prof * 14, 10)               # features sit lower on the face (anime proportions)
+    _eyes(cv, lk, st, fd, gx, gy)
+    cv.drawLine(2, 62, 6, 66, line_paint(shade(lk.skin, -0.4), 3.0, 200))     # tiny nose tick
+    cv.restore()
+    cv.save()
+    cv.translate(st.prof * 14, 6)
+    _mouth(cv, lk, st, fd)
+    cv.restore()
+    cv.restore()
+    _fringe(cv, lk, st)
+    cv.save()
+    cv.translate(st.prof * 14, 10)
+    _brows(cv, lk, st, fd, gx)
+    cv.restore()
+    _fx(cv, lk, st, fd)
+    cv.restore()
+
+
+# ---------------------------------------------------------------- simple, cute hands (no fingers needed)
+def _hand(cv, lk, kind, wr, d, side):
+    x, y = wr
+    cv.save()
+    cv.translate(x + d[0] * 22, y + d[1] * 22)
+    cv.rotate(math.degrees(math.atan2(d[0], -d[1])))
+    sk = lk.skin
+    t = -side
+    parts = [("oval", 0, 0, 28, 26)]
+    if kind == "point":
+        parts.append(("cap", (-8, -12), (-8, -40), 14))                    # one little pointing finger
+        parts.append(("oval", t * 21, 6, 11, 14))
+    elif kind == "thumb":
+        parts.append(("cap", (t * 15, -8), (t * 13, -34), 16))
+    elif kind == "open":
+        parts = [("oval", 0, 0, 30, 28), ("oval", t * 24, 8, 12, 15)]
+    elif kind == "fist":
+        parts = [("oval", 0, 0, 27, 25), ("oval", t * 17, 6, 11, 12)]
+    else:
+        parts.append(("oval", t * 21, 7, 11, 14))
+    _union(cv, parts, sk, 3.4)
+    cv.restore()
+
+
+def _arm(cv, lk, st, side, wiggle):
+    cur, prv = pose_def(st.pose), pose_def(st.prev)
+    key = "L" if side == -1 else "R"
+    a1c, a2c, hk = cur[key]
+    a1p, a2p, _ = prv[key]
+    k = back_out(st.blend, 1.3) if st.blend < 1 else 1.0
+    a1, a2 = lerp(a1p, a1c, k), lerp(a2p, a2c, k)
+    w = math.sin(st.t * 7.5 + (2 if side < 0 else 0)) * 5 * wiggle
+    idle = math.sin(st.t * 1.7 + side) * 2.5
+    a2 += w + idle + st.beat * 12 * (1 if a2c > 60 else 0)
+    a1 += idle * 0.5
+    sh, el, wr, d2 = arm_pts(side, a1, a2)
+    col = lk.top
+    tube(cv, [sh, el], 37, col, 3.6, ink=LINE)
+    tube(cv, [el, wr], 33, col, 3.6, ink=LINE)
+    cuff0 = (wr[0] - d2[0] * 10, wr[1] - d2[1] * 10)
+    tube(cv, [cuff0, (wr[0] + d2[0] * 2, wr[1] + d2[1] * 2)], 36, shade(col, -0.16), 3.6, ink=LINE)
+    _hand(cv, lk, hk, wr, d2, side)

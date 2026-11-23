@@ -553,3 +553,204 @@ def draw_character(cv, lk, x, y, scale, st):
         for side in (-1, 1):
             _arm(cv, lk, st, side, wig)
     cv.restore()
+
+
+# ====================================================================== v2 redesign
+# Cleaner bob with swept fringe, big glossy eyes, sleeves with ribbed cuffs, and properly built hands.
+_old_hair_back, _old_fringe, _old_eyes = _hair_back, _fringe, _eyes
+
+
+def head_path():
+    return smooth_closed(squircle_pts(0, 6, HEAD_RX - 2, HEAD_RY, n=2.35, steps=40), 1.0)
+
+
+def _pt_path(start, segs, close=True):
+    p = skia.Path()
+    p.moveTo(*start)
+    for s in segs:
+        if len(s) == 6:
+            p.cubicTo(*s)
+        else:
+            p.quadTo(*s)
+    if close:
+        p.close()
+    return p
+
+
+def _mirror(seg):
+    return tuple(-v if i % 2 == 0 else v for i, v in enumerate(seg))
+
+
+def _hair_back(cv, lk, st):
+    if lk.style != "bob":
+        return _old_hair_back(cv, lk, st)
+    col = shade(lk.hair, -0.2)
+    p = skia.Path()
+    p.moveTo(-156, -26)
+    p.cubicTo(-182, 30, -178, 92, -150, 120)
+    p.quadTo(-100, 130, -60, 112)
+    p.quadTo(0, 98, 60, 112)
+    p.quadTo(100, 130, 150, 120)
+    p.cubicTo(178, 92, 182, 30, 156, -26)
+    p.close()
+    outlined(cv, p, col, OW)
+
+
+def _fringe(cv, lk, st):
+    if lk.style != "bob":
+        return _old_fringe(cv, lk, st)
+    c, hi = lk.hair, lk.hair_hi
+    p = skia.Path()
+    p.moveTo(-154, -22)
+    p.cubicTo(-176, -134, -84, -182, 0, -180)               # dome
+    p.cubicTo(84, -182, 176, -134, 154, -22)
+    p.cubicTo(164, 20, 162, 64, 146, 96)                       # right side lock down to its tip
+    p.quadTo(132, 56, 126, 0)                                  # back up along the cheek
+    p.quadTo(126, -30, 108, -46)                               # swept fringe, right -> left, leaf-shaped clumps
+    p.quadTo(100, -70, 80, -80)
+    p.quadTo(74, -50, 56, -42)
+    p.quadTo(58, -72, 34, -86)
+    p.quadTo(26, -52, 4, -44)
+    p.quadTo(8, -74, -18, -88)
+    p.quadTo(-32, -54, -54, -46)
+    p.quadTo(-52, -72, -80, -84)
+    p.quadTo(-96, -52, -116, -40)
+    p.quadTo(-124, -20, -126, 0)
+    p.quadTo(-132, 56, -146, 96)                               # left lock tip
+    p.cubicTo(-162, 64, -164, 20, -154, -22)
+    p.close()
+    outlined(cv, p, c, OW)
+    cv.save()
+    cv.clipPath(p, skia.ClipOp.kIntersect, True)
+    cv.drawPath(smooth_open([(-104, -128), (-50, -156), (30, -158), (88, -140)], 0.9), line_paint(hi, 13, 190))
+    cv.drawCircle(104, -118, 5, fill_paint(hi, 170))
+    for x0, y0, x1, y1 in ((-60, -150, -54, -104), (10, -160, 8, -112), (70, -150, 64, -106)):
+        cv.drawPath(smooth_open([(x0, y0), ((x0 + x1) / 2 - 3, (y0 + y1) / 2), (x1, y1)], 0.8), line_paint(shade(c, -0.25), 3, 160))
+    cv.restore()
+    cv.drawPath(p, line_paint(INK, OW))
+    # ahoge: one cute loose strand (a curved leaf shape)
+    a = skia.Path()
+    a.moveTo(-4, -174)
+    a.quadTo(8, -214, 48, -214)
+    a.quadTo(26, -198, 22, -172)
+    a.close()
+    outlined(cv, a, c, OW - 0.6)
+
+
+def _eyes(cv, lk, st, fd, gx, gy):
+    kind = fd["eye"]
+    if kind not in ("open", "tear", "sparkle", "wide", "small") or (st.blink and st.blink > 0):
+        return _old_eyes(cv, lk, st, fd, gx, gy)
+    ey = 16
+    for sx in (-1, 1):
+        ex = sx * 62 + gx * 7
+        y = ey + gy * 5
+        rx, ry = {"open": (23, 31), "tear": (24, 32), "sparkle": (26, 34), "wide": (27, 37), "small": (17, 21)}[kind]
+        eye = skia.Rect.MakeLTRB(ex - rx, y - ry, ex + rx, y + ry)
+        cv.drawOval(eye, fill_paint((38, 26, 50)))
+        cv.save()
+        cv.clipPath(skia.Path.Oval(eye), skia.ClipOp.kIntersect, True)
+        # iris glow in the lower half
+        cv.drawOval(skia.Rect.MakeLTRB(ex - rx * 0.86 + gx * 2, y - ry * 0.05, ex + rx * 0.86 + gx * 2, y + ry * 1.25), fill_paint((120, 84, 150), 235))
+        cv.drawOval(skia.Rect.MakeLTRB(ex - rx * 0.6 + gx * 2, y + ry * 0.25, ex + rx * 0.6 + gx * 2, y + ry * 1.2), fill_paint((176, 132, 196), 200))
+        cv.restore()
+        cv.drawCircle(ex + rx * 0.3 + gx * 2, y - ry * 0.33, rx * 0.4, fill_paint((255, 255, 255)))
+        cv.drawCircle(ex - rx * 0.34, y + ry * 0.42, rx * 0.19, fill_paint((255, 255, 255), 235))
+        if kind == "sparkle":
+            cv.drawCircle(ex + rx * 0.0, y + ry * 0.05, rx * 0.14, fill_paint((255, 255, 255), 230))
+        if kind == "tear":
+            cv.drawOval(skia.Rect.MakeLTRB(ex - rx, y + ry - 6, ex + rx, y + ry + 12), fill_paint((150, 205, 250), 230))
+        # thick upper lash with a little flick at the outer corner
+        lash = smooth_open([(ex - rx - 1, y + 2), (ex - rx * 0.7, y - ry * 0.78), (ex, y - ry - 2), (ex + rx * 0.7, y - ry * 0.78), (ex + rx + 1, y + 2)], 0.9)
+        cv.drawPath(lash, line_paint(INK, 7.5))
+        fx = ex + sx * (rx + 1)
+        cv.drawLine(fx, y + 1, fx + sx * 8, y - 8, line_paint(INK, 5.5))
+        if lk.glasses:
+            r = 38
+            cv.drawCircle(ex, y, r, fill_paint((255, 255, 255), 40))
+            cv.drawCircle(ex, y, r, line_paint(INK, 4.5))
+    if lk.glasses:
+        cv.drawLine(-24 + gx * 7, 12, 24 + gx * 7, 12, line_paint(INK, 4.5))
+
+
+# ---------------------------------------------------------------- hands
+def _union(cv, parts, col, ow=4.0, creases=()):
+    """Draw capsules/ovals as ONE shape: ink silhouette first, then flat fill, so no outlines show inside the hand."""
+    for stage in (0, 1):
+        for part in parts:
+            if part[0] == "cap":
+                _, a, b, w = part
+                cv.drawLine(a[0], a[1], b[0], b[1], line_paint(INK if stage == 0 else col, w + (ow * 2 if stage == 0 else 0)))
+            else:
+                _, cx, cy, rx, ry = part
+                e = ow if stage == 0 else 0
+                cv.drawOval(skia.Rect.MakeLTRB(cx - rx - e, cy - ry - e, cx + rx + e, cy + ry + e), fill_paint(INK if stage == 0 else col))
+    for a, b in creases:
+        cv.drawPath(smooth_open([a, ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2), b], 0.8), line_paint(shade(col, -0.45), 2.8, 235))
+
+
+def _cap_from(x, y, ang_deg, length, w):
+    a = math.radians(ang_deg)
+    return ("cap", (x, y), (x + math.sin(a) * length, y - math.cos(a) * length), w)
+
+
+def _hand(cv, lk, kind, wr, d, side):
+    x, y = wr
+    cv.save()
+    cv.translate(x + d[0] * 24, y + d[1] * 24)
+    cv.rotate(math.degrees(math.atan2(d[0], -d[1])))
+    sk = lk.skin
+    t = -side                                   # thumb side (toward the body)
+    if kind == "open":
+        fingers = [(-17, -12, -20 * 1, 33, 13), (-6, -17, -6, 40, 13.5), (6, -17, 6, 38, 13.5), (17, -12, 20, 31, 12.5)]
+        parts = [("oval", 0, 0, 29, 27)]
+        for fx, fy, ang, ln, w in fingers:
+            parts.append(_cap_from(fx, fy, ang, ln, w))
+        parts.append(_cap_from(t * 22, 6, t * 52, 28, 15))
+        _union(cv, parts, sk, 4.0, creases=[((-11.5, -26), (-11, -18)), ((0, -30), (0, -20)), ((11.5, -26), (11, -18))])
+    elif kind == "point":
+        parts = [("oval", 0, 2, 28, 26)]
+        for fx in (4, 14, 23):
+            parts.append(("oval", fx, -18, 9.5, 9.5))
+        parts.append(_cap_from(-9, -14, 0, 38, 13.5))              # index finger up
+        parts.append(_cap_from(t * 21, 6, t * 40, 22, 14))
+        _union(cv, parts, sk, 4.0, creases=[((9, -18), (9, -8)), ((19, -17), (19, -7))])
+    elif kind == "fist":
+        parts = [("oval", 0, 0, 29, 27)]
+        for fx in (-18, -6, 6, 18):
+            parts.append(("oval", fx, -19, 10.5, 10.5))
+        parts.append(("cap", (t * 17, 8), (t * 3, -3), 13))
+        _union(cv, parts, sk, 4.0, creases=[((-12, -22), (-12, -8)), ((0, -24), (0, -9)), ((12, -22), (12, -8))])
+    elif kind == "thumb":
+        parts = [("oval", 0, 2, 28, 26)]
+        for fx in (-18, -6, 6, 18):
+            parts.append(("oval", fx, -12, 10, 10))
+        parts.append(_cap_from(t * 17, -6, t * 14, 32, 17))
+        _union(cv, parts, sk, 4.0, creases=[((-12, -14), (-12, -2)), ((0, -16), (0, -3)), ((12, -14), (12, -2))])
+    else:   # mitt: relaxed hand, fingers loosely curled, thumb resting beside
+        parts = [("oval", 0, 0, 28, 26)]
+        for fx, fy in ((-17, -17), (-6, -21), (6, -21), (17, -17)):
+            parts.append(("oval", fx, fy, 9.5, 11))
+        parts.append(_cap_from(t * 21, 4, t * 22, 24, 14))
+        _union(cv, parts, sk, 4.0, creases=[((-11.5, -24), (-11.5, -12)), ((0, -28), (0, -14)), ((11.5, -24), (11.5, -12))])
+    cv.restore()
+
+
+def _arm(cv, lk, st, side, wiggle):
+    cur, prv = pose_def(st.pose), pose_def(st.prev)
+    key = "L" if side == -1 else "R"
+    a1c, a2c, hk = cur[key]
+    a1p, a2p, _ = prv[key]
+    k = back_out(st.blend, 1.3) if st.blend < 1 else 1.0
+    a1, a2 = lerp(a1p, a1c, k), lerp(a2p, a2c, k)
+    w = math.sin(st.t * 7.5 + (2 if side < 0 else 0)) * 5 * wiggle
+    idle = math.sin(st.t * 1.7 + side) * 2.5
+    a2 += w + idle + st.beat * 12 * (1 if a2c > 60 else 0)
+    a1 += idle * 0.5
+    sh, el, wr, d2 = arm_pts(side, a1, a2)
+    col = lk.top
+    tube(cv, [sh, el], 50, col, 4.4)                  # upper arm (puffy hoodie sleeve)
+    tube(cv, [el, wr], 42, col, 4.4)                  # forearm, a little slimmer
+    cuff0 = (wr[0] - d2[0] * 14, wr[1] - d2[1] * 14)
+    tube(cv, [cuff0, (wr[0] + d2[0] * 2, wr[1] + d2[1] * 2)], 45, shade(col, -0.16), 4.2)   # ribbed cuff
+    _hand(cv, lk, hk, wr, d2, side)

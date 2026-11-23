@@ -1,0 +1,6 @@
+.work/
+output/
+out/
+__pycache__/
+*.pyc
+assets/

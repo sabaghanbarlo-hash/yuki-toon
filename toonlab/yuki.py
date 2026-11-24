@@ -100,15 +100,15 @@ POSES = {
     "shrug":   dict(L=(52, 148, "open"), R=(52, 148, "open")),
     "hips":    dict(L=(44, -42, "mitt"), R=(44, -42, "mitt")),
     "cross":   dict(L=(24, -88, "mitt"), R=(24, -88, "mitt")),
-    "cheer":   dict(L=(150, 172, "open"), R=(150, 172, "open")),
-    "wave":    dict(L=(10, 6, "mitt"), R=(128, 168, "open")),
+    "cheer":   dict(L=(96, 126, "open"), R=(96, 126, "open")),
+    "wave":    dict(L=(10, 6, "mitt"), R=(92, 122, "open")),
     "idea":    dict(L=(10, 6, "mitt"), R=(140, 176, "point")),
     "think":   dict(L=(12, 8, "mitt"), R=(38, 138, "point")),
     "slump":   dict(L=(2, 0, "mitt"), R=(2, 0, "mitt")),
     "fist":    dict(L=(10, 6, "mitt"), R=(66, 140, "fist")),
     "thumbs":  dict(L=(10, 6, "mitt"), R=(70, 150, "thumb")),
     "stop":    dict(L=(10, 6, "mitt"), R=(84, 170, "open")),
-    "hands_up": dict(L=(70, 160, "open"), R=(70, 160, "open")),
+    "hands_up": dict(L=(94, 128, "open"), R=(94, 128, "open")),
     "hug":     dict(L=(30, -110, "mitt"), R=(30, -110, "mitt")),
 }
 POSE_ALIASES = {"facepalm": "slump", "head": "think", "head_l": "think", "think_l": "think", "sob": "slump", "gasp_hands": "hands_up", "shy": "hug",
@@ -1175,7 +1175,13 @@ def _eyes(cv, lk, st, fd, gx, gy):
         return _v4_eyes(cv, lk, st, fd, gx, gy)
     kind = fd["eye"]
     if kind not in ("open", "tear", "sparkle", "wide", "small") or (st.blink and st.blink > 0):
-        return _old_eyes(cv, lk, st, fd, gx, gy)
+        _old_eyes(cv, lk, st, fd, gx, gy)
+        if kind in ("happy", "closed"):
+            for sx in (-1, 1):       # little lash flicks on the outer corners of the closed arcs
+                ex = sx * 62 + gx * 7
+                for dy in (0,):
+                    cv.drawPath(_line(ex + sx * 19, 24 + dy, ex + sx * 30, 17 + dy), line_paint(INKY, 4.2))
+        return
     sz = {"open": 1.0, "tear": 1.0, "sparkle": 1.1, "wide": 1.25, "small": 0.7}[kind]
     for sx in (-1, 1):
         ex, y = sx * 56 + gx * 7, 20 + gy * 5

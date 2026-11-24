@@ -1196,12 +1196,16 @@ def _fringe_path():
     p.cubicTo(166, 20, 168, 70, 160, 108)             # right side, long
     p.lineTo(150, 100); p.lineTo(152, 128); p.lineTo(130, 106)   # ragged tips
     p.quadTo(112, 50, 104, -2)
-    p.cubicTo(100, -34, 84, -58, 52, -58)             # curved forehead opening
-    p.quadTo(40, -56, 30, -50)                        # crescent side-swept bang
-    p.cubicTo(24, -16, 2, 24, -36, 60)
-    p.cubicTo(-14, 20, -12, -18, -22, -46)
-    p.cubicTo(-30, -52, -44, -50, -50, -42)
-    p.cubicTo(-64, -50, -96, -40, -106, -8)
+    if BANG == "curtain":        # parted in the middle, two soft curtains sweeping outward
+        p.cubicTo(100, -20, 84, -34, 62, -26)
+        p.cubicTo(36, -18, 14, -40, 0, -64)
+        p.cubicTo(-14, -40, -36, -18, -62, -26)
+        p.cubicTo(-84, -34, -100, -20, -104, -2)
+    else:                        # "short": straight, slightly uneven fringe with a few tips
+        p.cubicTo(100, -26, 90, -34, 76, -30)
+        p.lineTo(60, -22); p.lineTo(44, -34); p.lineTo(26, -20); p.lineTo(8, -34)
+        p.lineTo(-10, -20); p.lineTo(-30, -34); p.lineTo(-48, -20); p.lineTo(-68, -32)
+        p.cubicTo(-90, -32, -100, -22, -104, -2)
     p.quadTo(-112, 40, -122, 80)
     p.lineTo(-134, 112); p.lineTo(-146, 100); p.lineTo(-152, 126)
     p.lineTo(-162, 104)
@@ -1236,8 +1240,6 @@ def _fringe(cv, lk, st):
     for k in range(16):
         x = -140 + k * 18
         cv.drawPath(smooth_open([(x, -170), (x + 10, -120), (x + 22, -70)], 0.8), line_paint((70, 62, 84), 2.2, 70))
-    for k in range(5):
-        cv.drawPath(smooth_open([(20 - k * 12, -50 + k * 4), (-6 - k * 12, 0 + k * 6), (-30 - k * 10, 40 + k * 4)], 0.9), line_paint((70, 62, 84), 2.4, 110))
     cv.restore()
     cv.drawPath(p, line_paint(LINE, OW - 0.6))
 
@@ -1335,6 +1337,7 @@ def _arm(cv, lk, st, side, wiggle):
 # ====================================================================== v7: smaller face inside a bigger bob
 _v3_draw_head = draw_head
 FACE_K, HEAD_K = 0.8, 0.86
+BANG = "curtain"
 
 
 def draw_head(cv, lk, st):

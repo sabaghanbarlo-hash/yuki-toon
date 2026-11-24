@@ -1194,14 +1194,14 @@ def _fringe_path():
     p = skia.Path()
     _dome(p)
     p.cubicTo(166, 20, 168, 70, 160, 108)             # right side, long
-    p.lineTo(150, 100); p.lineTo(152, 128); p.lineTo(136, 108)   # ragged tips
-    p.quadTo(128, 50, 124, -6)
-    p.quadTo(120, -46, 96, -64)                       # forehead opening
-    p.quadTo(64, -62, 40, -48)                        # thin side-swept bang
-    p.cubicTo(24, -20, 4, 20, -22, 56)
-    p.cubicTo(-30, 24, -46, -14, -50, -42)
-    p.cubicTo(-70, -48, -100, -44, -120, -34)
-    p.quadTo(-128, 20, -128, 60)
+    p.lineTo(150, 100); p.lineTo(152, 128); p.lineTo(130, 106)   # ragged tips
+    p.quadTo(112, 50, 104, -2)
+    p.cubicTo(100, -34, 84, -58, 52, -58)             # curved forehead opening
+    p.quadTo(40, -50, 34, -40)                        # thin side-swept bang
+    p.cubicTo(24, -14, 6, 24, -18, 56)
+    p.cubicTo(-28, 24, -44, -10, -50, -38)
+    p.cubicTo(-64, -50, -96, -40, -106, -8)
+    p.quadTo(-112, 40, -122, 80)
     p.lineTo(-134, 112); p.lineTo(-146, 100); p.lineTo(-152, 126)
     p.lineTo(-162, 104)
     p.cubicTo(-170, 70, -168, 20, -154, -22)
@@ -1234,7 +1234,7 @@ def _fringe(cv, lk, st):
     # crayon hatching
     for k in range(16):
         x = -140 + k * 18
-        cv.drawPath(smooth_open([(x, -170), (x + 10, -120), (x + 22, -70)], 0.8), line_paint((70, 62, 84), 2.6, 120))
+        cv.drawPath(smooth_open([(x, -170), (x + 10, -120), (x + 22, -70)], 0.8), line_paint((70, 62, 84), 2.2, 70))
     for k in range(5):
         cv.drawPath(smooth_open([(20 - k * 12, -50 + k * 4), (-6 - k * 12, 0 + k * 6), (-30 - k * 10, 40 + k * 4)], 0.9), line_paint((70, 62, 84), 2.4, 110))
     cv.restore()
@@ -1329,3 +1329,44 @@ def _arm(cv, lk, st, side, wiggle):
     p = skia.Path(); p.moveTo(*sh); p.lineTo(*el); p.lineTo(*wr)
     cv.drawPath(p, line_paint(_STK, 7))
     _hand(cv, lk, hk, wr, d2, side)
+
+
+# ====================================================================== v7: smaller face inside a bigger bob
+_v3_draw_head = draw_head
+FACE_K, HEAD_K = 0.8, 0.86
+
+
+def draw_head(cv, lk, st):
+    if lk.style != "bob" or DESIGN["hair"] != "shag":
+        return _v3_draw_head(cv, lk, st)
+    fd = face_def(st.face)
+    gx, gy = st.gx + st.prof * 0.8, st.gy
+    cv.save()
+    cv.translate(0, 120); cv.rotate(st.tilt); cv.translate(0, -120)
+    cv.translate(0, 64); cv.scale(HEAD_K, HEAD_K); cv.translate(0, -64)
+    _hair_back(cv, lk, st)
+    cv.save()
+    cv.translate(st.prof * 8, 52); cv.scale(FACE_K, FACE_K); cv.translate(0, -52)   # the face is smaller than the hair
+    hp = head_path()
+    cv.drawPath(hp, fill_paint(lk.skin))
+    cv.drawPath(hp, line_paint(LINE, OW + 0.8))
+    b = fd.get("blush", 0.3)
+    if b > 0.02:
+        for sx in (-1, 1):
+            cx, cy = sx * 88, 70
+            for k in (-1, 0, 1):
+                cv.drawLine(cx + k * 12 - 4, cy - 7, cx + k * 12 + 4, cy + 7, line_paint((238, 120, 84), 4.4, int(210 * min(1, b))))
+    cv.save(); cv.translate(st.prof * 14, 10)
+    _eyes(cv, lk, st, fd, gx, gy)
+    cv.restore()
+    cv.save(); cv.translate(st.prof * 14, 8)
+    _mouth(cv, lk, st, fd)
+    cv.restore()
+    cv.restore()
+    _fringe(cv, lk, st)
+    cv.save()
+    cv.translate(st.prof * 14, 52); cv.scale(FACE_K, FACE_K); cv.translate(0, -52); cv.translate(0, 10)
+    _brows(cv, lk, st, fd, gx)
+    cv.restore()
+    _fx(cv, lk, st, fd)
+    cv.restore()

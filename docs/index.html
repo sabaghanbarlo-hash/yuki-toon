@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Yuki Toon Studio</title>
+<link rel="icon" href="yuki.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fff4e6; --card:#ffffff; --ink:#2a2230; --muted:#7a6f80; --line:#ecdcc8;
+  --accent:#e2583a; --accent-2:#7e964a; --warn:#b9620f; --ok:#2f7d4f; --bad:#b3261e;
+  --shadow:0 6px 0 rgba(42,34,48,.08);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){--bg:#1f1a24;--card:#2a2330;--ink:#f6ece1;--muted:#b3a7b8;--line:#3d3346;--accent:#ff7a5c;--accent-2:#a6c162;--shadow:0 6px 0 rgba(0,0,0,.25)}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Nunito,system-ui,sans-serif;line-height:1.5}
+.wrap{max-width:880px;margin:0 auto;padding:20px 16px 60px}
+header{display:flex;align-items:center;gap:14px;margin:8px 0 18px}
+header img{width:84px;height:84px;border-radius:22px;border:3px solid var(--ink);background:#fff4e6}
+h1{font-family:Fredoka,sans-serif;font-weight:600;margin:0;font-size:2rem;line-height:1.1}
+header p{margin:2px 0 0;color:var(--muted)}
+.card{background:var(--card);border:3px solid var(--ink);border-radius:20px;padding:18px;margin:16px 0;box-shadow:var(--shadow)}
+h2{font-family:Fredoka,sans-serif;font-weight:500;margin:0 0 10px;font-size:1.25rem}
+label{display:block;font-weight:700;margin:12px 0 4px}
+textarea,input,select{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:2px solid var(--line);border-radius:12px;padding:10px 12px}
+textarea{min-height:240px;resize:vertical;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.95rem}
+textarea:focus,input:focus,select:focus{outline:3px solid color-mix(in srgb,var(--accent) 40%,transparent);border-color:var(--accent)}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+button{font-family:Fredoka,sans-serif;font-weight:500;font-size:1.1rem;border:3px solid var(--ink);border-radius:14px;padding:12px 20px;background:var(--accent);color:#fff;cursor:pointer;box-shadow:0 4px 0 var(--ink);transition:transform .08s,box-shadow .08s}
+button:hover{transform:translateY(-1px)}
+button:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+button.ghost{background:var(--card);color:var(--ink);font-size:.95rem;padding:8px 14px}
+button:disabled{opacity:.55;cursor:not-allowed}
+.hint{color:var(--muted);font-size:.9rem;margin:4px 0 0}
+.est{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.pill{border:2px solid var(--line);border-radius:999px;padding:3px 12px;font-size:.9rem;background:var(--bg)}
+.pill.warn{border-color:var(--warn);color:var(--warn)}
+details{margin-top:10px}
+summary{cursor:pointer;font-weight:700}
+code{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:.88rem}
+.cues{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:6px 18px;margin-top:8px;font-size:.92rem}
+.job{border:2px solid var(--line);border-radius:14px;padding:12px 14px;margin:10px 0;background:var(--bg)}
+.job .top{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}
+.job b{font-family:Fredoka,sans-serif;font-weight:500}
+.status{font-weight:700}
+.status.run{color:var(--warn)}.status.ok{color:var(--ok)}.status.bad{color:var(--bad)}
+.bar{height:12px;border-radius:99px;background:var(--line);overflow:hidden;margin:10px 0 4px}
+.bar i{display:block;height:100%;width:0;background:repeating-linear-gradient(45deg,var(--accent),var(--accent) 10px,color-mix(in srgb,var(--accent) 70%,#fff) 10px,color-mix(in srgb,var(--accent) 70%,#fff) 20px);transition:width .6s}
+video{width:100%;border-radius:14px;border:3px solid var(--ink);background:#000;margin-top:10px}
+a{color:var(--accent)}
+.err{color:var(--bad);font-weight:700;margin-top:8px}
+.ok-msg{color:var(--ok);font-weight:700}
+ol{padding-left:20px;margin:6px 0}
+.sr{position:absolute;left:-9999px}
+@media (max-width:520px){h1{font-size:1.6rem}header img{width:64px;height:64px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img src="yuki.png" alt="Yuki waving">
+    <div><h1>Yuki Toon Studio</h1><p>Paste a script. Yuki makes the cartoon video in your own voice.</p></div>
+  </header>
+
+  <section class="card" id="setup">
+    <h2>1. Connect (one time)</h2>
+    <p class="hint">The site starts the render on GitHub for you. It needs a GitHub access token that only lives in this browser. It is never sent anywhere except GitHub.</p>
+    <details id="howtoken">
+      <summary>How do I get a token? (2 minutes)</summary>
+      <ol>
+        <li>Open <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">GitHub &rarr; New fine-grained token</a>.</li>
+        <li>Name: <code>yuki-toon-site</code>. Expiration: 90 days or longer.</li>
+        <li>Repository access: <b>Only select repositories</b> &rarr; <code>yuki-toon</code>.</li>
+        <li>Permissions &rarr; Repository permissions &rarr; <b>Actions: Read and write</b>. Nothing else.</li>
+        <li>Generate the token, copy it, and paste it below.</li>
+      </ol>
+    </details>
+    <label for="token">GitHub token</label>
+    <input id="token" type="password" autocomplete="off" placeholder="github_pat_...">
+    <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <button class="ghost" id="saveToken" type="button">Save token</button>
+      <button class="ghost" id="clearToken" type="button">Forget token</button>
+      <span id="tokenMsg" class="hint"></span>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>2. Your script</h2>
+    <label for="script" class="sr">Script</label>
+    <textarea id="script" spellcheck="true" placeholder="# Why you cannot sleep&#10;&#10;Ever lie in bed exhausted, and your brain just will not switch off?&#10;Your brain is a prediction machine. [face: smug]&#10;About 70 percent of people say their mind races before bed! [text: 70%]"></textarea>
+    <div class="est" id="est"></div>
+    <details>
+      <summary>Cues you can add inside the script</summary>
+      <div class="cues">
+        <div><code>[face: shocked]</code> Yuki's expression</div>
+        <div><code>[pose: shrug]</code> her gesture</div>
+        <div><code>[set: office]</code> change the room</div>
+        <div><code>[with: boss]</code> bring in another character</div>
+        <div><code>[text: Real Talk]</code> big words on screen</div>
+        <div><code>[shot: closeup]</code> closeup, medium, wide, prop, text</div>
+        <div><code>[sfx: gasp]</code> sound effect</div>
+        <div><code>[pause: 1]</code> a silent beat (seconds)</div>
+        <div><code>[chart: money | happiness | up]</code> a hand-drawn graph that traces itself</div>
+      </div>
+      <p class="hint">Faces: smile, happy, excited, laughing, proud, smug, curious, confused, worried, nervous, embarrassed, sad, crying, shocked, angry, determined, serene and more. Poses: wave, shrug, point_r, cheer, think, idea, thumbs, hands_up, hug and more. Lines starting with <code>#</code> are titles.</p>
+    </details>
+
+    <div class="row" style="margin-top:6px">
+      <div>
+        <label for="voice">Voice</label>
+        <select id="voice">
+          <option value="voicestudio">My cloned voice (slow, about 4 min per sentence)</option>
+          <option value="babble">Quick test (no real voice, about 10 min)</option>
+        </select>
+      </div>
+      <div>
+        <label for="format">Shape</label>
+        <select id="format">
+          <option value="long">Long video 16:9</option>
+          <option value="short">Short 9:16</option>
+        </select>
+      </div>
+      <div>
+        <label for="maxs">Only the first N sentences</label>
+        <input id="maxs" type="number" min="0" max="999" value="4">
+        <p class="hint">0 = the whole script</p>
+      </div>
+      <div>
+        <label for="seed">Variation</label>
+        <input id="seed" type="number" min="0" max="999999" value="0">
+        <p class="hint">Change it for a different arrangement</p>
+      </div>
+    </div>
+
+    <div style="margin-top:18px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      <button id="go" type="button">Make my video</button>
+      <span id="goMsg" class="hint"></span>
+    </div>
+    <div id="err" class="err" role="alert"></div>
+  </section>
+
+  <section class="card">
+    <h2>3. Your videos</h2>
+    <p class="hint" id="emptyJobs">Nothing yet. Your renders appear here and update by themselves. You can close this page and come back later.</p>
+    <div id="jobs"></div>
+  </section>
+  <p class="hint" style="text-align:center">Test studio. It runs separately from your main Yuki video system.</p>
+</div>
+
+<script>
+const OWNER="sabaghanbarlo-hash", REPO="yuki-toon", WORKFLOW="make.yml";
+const API=`https://api.github.com/repos/${OWNER}/${REPO}`;
+const $=id=>document.getElementById(id);
+const store={
+  get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+};
+let token=store.get("yt_token","");
+let jobs=store.get("yt_jobs",[]);
+$("token").value=token;
+if(token){$("tokenMsg").textContent="Token saved in this browser.";$("howtoken").open=false}else{$("howtoken").open=true}
+$("script").value=store.get("yt_script","");
+
+function hdrs(){const h={"Accept":"application/vnd.github+json"};if(token)h["Authorization"]="Bearer "+token;return h}
+$("saveToken").onclick=async()=>{
+  token=$("token").value.trim();store.set("yt_token",token);
+  if(!token){$("tokenMsg").textContent="Paste a token first.";return}
+  $("tokenMsg").textContent="Checking...";
+  try{
+    const r=await fetch(API,{headers:hdrs()});
+    $("tokenMsg").innerHTML=r.ok?'<span class="ok-msg">Connected to yuki-toon.</span>':'<span class="err">GitHub said no ('+r.status+'). Check the token and that it can access yuki-toon.</span>';
+  }catch(e){$("tokenMsg").innerHTML='<span class="err">No connection.</span>'}
+};
+$("clearToken").onclick=()=>{token="";$("token").value="";store.set("yt_token","");$("tokenMsg").textContent="Token removed from this browser."};
+
+function sentences(text){
+  const clean=text.split("\n").filter(l=>!/^\s*#/.test(l)).join(" ").replace(/\[[^\]]*\]/g,"");
+  return (clean.match(/[^.!?]+[.!?]+["')\]]*|[^.!?]+$/g)||[]).filter(s=>s.trim().length>1).length;
+}
+function updateEst(){
+  const text=$("script").value;store.set("yt_script",text);
+  const n=sentences(text), max=+$("maxs").value||0, used=max&&max<n?max:n;
+  const voice=$("voice").value;
+  const mins=voice==="voicestudio"?used*4+8:Math.max(10,Math.round(used*0.6)+8);
+  const h=mins>=90?(mins/60).toFixed(1)+" hours":mins+" min";
+  let html=`<span class="pill">${n} sentences found</span><span class="pill">${used} will be made</span><span class="pill ${mins>300?'warn':''}">about ${h}</span>`;
+  if(mins>330)html+=`<span class="pill warn">Over the 6 hour limit: lower "first N sentences"</span>`;
+  if(text.length>30000)html+=`<span class="pill warn">Script too long (30,000 characters max)</span>`;
+  $("est").innerHTML=html;
+}
+["script","maxs","voice"].forEach(i=>$(i).addEventListener("input",updateEst));updateEst();
+
+function rid(){const a="abcdefghijkmnpqrstuvwxyz23456789";let s="";for(let i=0;i<8;i++)s+=a[Math.floor(Math.random()*a.length)];return s}
+function title(text){const m=text.match(/^\s*#\s*(.+)$/m);return m?m[1].trim().slice(0,60):(text.trim().split("\n")[0]||"Untitled").slice(0,60)}
+
+$("go").onclick=async()=>{
+  $("err").textContent="";
+  const text=$("script").value.trim();
+  if(!token){$("err").textContent="Connect first: paste your GitHub token in step 1.";$("setup").scrollIntoView({behavior:"smooth"});return}
+  if(!text){$("err").textContent="Paste a script first.";return}
+  if(text.length>30000){$("err").textContent="The script is too long (30,000 characters max).";return}
+  $("go").disabled=true;$("goMsg").textContent="Sending to GitHub...";
+  const id=rid(), sent=new Date().toISOString();
+  const inputs={script:"scripts/chart-test.txt",voice:$("voice").value,max_sentences:String(Math.max(0,+$("maxs").value||0)),format:$("format").value,seed:String(Math.max(0,+$("seed").value||0)),script_text:text,job:id};
+  try{
+    const r=await fetch(`${API}/actions/workflows/${WORKFLOW}/dispatches`,{method:"POST",headers:{...hdrs(),"Content-Type":"application/json"},body:JSON.stringify({ref:"main",inputs})});
+    if(r.status!==204){
+      let m="";try{m=(await r.json()).message}catch(e){}
+      $("err").textContent=r.status===401||r.status===403||r.status===404?`GitHub refused (${r.status}). The token needs "Actions: Read and write" on yuki-toon. ${m}`:`Could not start the render (${r.status}). ${m}`;
+    }else{
+      jobs.unshift({id,title:title(text),sent,voice:inputs.voice,format:inputs.format,n:inputs.max_sentences});
+      jobs=jobs.slice(0,30);store.set("yt_jobs",jobs);$("goMsg").textContent="Started! Watch it below.";renderJobs();poll();
+      $("jobs").scrollIntoView({behavior:"smooth"});
+    }
+  }catch(e){$("err").textContent="No connection to GitHub."}
+  $("go").disabled=false;
+};
+
+function fmt(ms){const m=Math.floor(ms/60000);return m<60?m+" min":Math.floor(m/60)+" h "+(m%60)+" min"}
+function renderJobs(){
+  $("emptyJobs").style.display=jobs.length?"none":"block";
+  $("jobs").innerHTML=jobs.map(j=>{
+    const st=j.state||"queued", cls=st==="done"?"ok":st==="failed"?"bad":"run";
+    const label={queued:"Waiting to start",running:"Making your video",done:"Ready",failed:"Failed"}[st]||st;
+    const elapsed=fmt(Date.now()-new Date(j.sent).getTime());
+    const per=j.voice==="voicestudio"?4:0.6, nn=(+j.n||0), est=(j.voice==="voicestudio"?(nn||10)*per+8:15)*60000;
+    const pct=st==="done"?100:st==="failed"?100:Math.min(95,Math.round((Date.now()-new Date(j.sent).getTime())/est*100));
+    let body="";
+    if(st==="done"&&j.video){body=`<video controls preload="metadata" src="${j.video}"></video><p><a href="${j.video}" download>Download the video</a></p>`}
+    else if(st==="failed"){body=`<p class="err">Something went wrong. <a href="${j.url||'https://github.com/'+OWNER+'/'+REPO+'/actions'}" target="_blank" rel="noopener">See the log</a>, or tell Claude the job code <code>${j.id}</code>.</p>`}
+    else{body=`<div class="bar"><i style="width:${pct}%"></i></div><p class="hint">${elapsed} so far. You can close this page; the video keeps rendering and shows up here when you return.</p>`}
+    return `<div class="job"><div class="top"><b>${esc(j.title)}</b><span class="status ${cls}">${label}</span></div><div class="hint">${j.voice==="voicestudio"?"Your voice":"Quick test"} &middot; ${j.format==="short"?"9:16":"16:9"} &middot; code ${j.id}${j.url?` &middot; <a href="${j.url}" target="_blank" rel="noopener">GitHub log</a>`:""}</div>${body}</div>`;
+  }).join("");
+}
+function esc(s){return s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+
+async function poll(){
+  const open=jobs.filter(j=>j.state!=="done"&&j.state!=="failed");
+  if(!open.length){renderJobs();return}
+  try{
+    const r=await fetch(`${API}/actions/workflows/${WORKFLOW}/runs?event=workflow_dispatch&per_page=30`,{headers:hdrs()});
+    const runs=r.ok?(await r.json()).workflow_runs:[];
+    for(const j of open){
+      const t0=new Date(j.sent).getTime()-60000;
+      // runs show the job id only through the release; match by time order (oldest unmatched run after the click)
+      if(!j.run){
+        const taken=new Set(jobs.map(x=>x.run).filter(Boolean));
+        const cand=runs.filter(x=>new Date(x.created_at).getTime()>=t0&&!taken.has(x.id)).sort((a,b)=>new Date(a.created_at)-new Date(b.created_at))[0];
+        if(cand){j.run=cand.id;j.url=cand.html_url}
+      }
+      const run=runs.find(x=>x.id===j.run);
+      if(run){
+        j.state=run.status==="completed"?(run.conclusion==="success"?"finishing":"failed"):(run.status==="queued"?"queued":"running");
+      }
+      if(j.state==="finishing"||(!run&&j.run)){
+        const rr=await fetch(`${API}/releases/tags/web-${j.id}`,{headers:hdrs()});
+        if(rr.ok){const rel=await rr.json();const a=(rel.assets||[]).find(x=>/\.mp4$/.test(x.name));if(a){j.video=a.browser_download_url;j.state="done"}}
+        else if(j.state==="finishing"&&Date.now()-new Date(j.sent).getTime()>0){j.tries=(j.tries||0)+1;if(j.tries>6)j.state="failed"}
+      }
+      if(!j.state)j.state="queued";
+    }
+    store.set("yt_jobs",jobs);
+  }catch(e){}
+  renderJobs();
+}
+renderJobs();poll();setInterval(poll,20000);
+</script>
+</body>
+</html>

@@ -18,6 +18,12 @@ on:
       seed:
         description: "Different arrangement of the same script"
         default: "0"
+      script_text:
+        description: "Optional: the script itself (sent by the website). Replaces the script file above."
+        default: ""
+      job:
+        description: "Optional: job id from the website, used to name the release (web-<job>)"
+        default: ""
 
 permissions:
   contents: write
@@ -32,11 +38,21 @@ jobs:
       MAXS: ${{ github.event.inputs.max_sentences }}
       FORMAT: ${{ github.event.inputs.format }}
       SEED: ${{ github.event.inputs.seed }}
+      SCRIPT_TEXT: ${{ github.event.inputs.script_text }}
+      JOB: ${{ github.event.inputs.job }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Check inputs
         run: |
+          if [ -n "$SCRIPT_TEXT" ]; then
+            [ "${#SCRIPT_TEXT}" -le 30000 ] || { echo "::error::script too long (30000 characters max)"; exit 1; }
+            printf '%s\n' "$SCRIPT_TEXT" > scripts/web-input.txt
+            SCRIPT=scripts/web-input.txt
+            echo "SCRIPT=$SCRIPT" >> "$GITHUB_ENV"
+          fi
+          [[ "$JOB" =~ ^[a-z0-9-]{4,40}$ ]] || JOB=""
+          echo "JOB=$JOB" >> "$GITHUB_ENV"
           [[ "$SCRIPT" =~ ^scripts/[A-Za-z0-9._-]+\.txt$ ]] || { echo "::error::script must look like scripts/name.txt"; exit 1; }
           test -f "$SCRIPT" || { echo "::error::$SCRIPT not found"; exit 1; }
           [[ "$VOICE" == "voicestudio" || "$VOICE" == "babble" ]] || { echo "::error::voice must be voicestudio or babble"; exit 1; }
@@ -102,6 +118,7 @@ jobs:
         run: |
           name=$(basename "${SCRIPT%.txt}")
           tag="test-$(date +%Y%m%d-%H%M%S)"
+          [ -n "$JOB" ] && tag="web-$JOB"
           gh release create "$tag" "output/$name.mp4" --title "Test: $name ($VOICE)" --notes "Sandbox render. voice=$VOICE sentences=$MAXS format=$FORMAT seed=$SEED" --prerelease
 
       - uses: actions/upload-artifact@v4

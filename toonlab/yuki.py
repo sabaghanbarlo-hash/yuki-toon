@@ -1239,3 +1239,93 @@ def _fringe(cv, lk, st):
         cv.drawPath(smooth_open([(20 - k * 12, -50 + k * 4), (-6 - k * 12, 0 + k * 6), (-30 - k * 10, 40 + k * 4)], 0.9), line_paint((70, 62, 84), 2.4, 110))
     cv.restore()
     cv.drawPath(p, line_paint(LINE, OW - 0.6))
+
+
+# ====================================================================== v6: stick-figure doodle body (matches 2nd reference)
+from dataclasses import replace as _replace
+YUKI = _replace(YUKI, hair=(22, 18, 26), hair_hi=(70, 62, 84), skin=(255, 241, 228), top=(126, 150, 74), scarf=(226, 88, 52), bottom=(30, 26, 34), legs=(30, 26, 34), shoes=(30, 26, 34))
+CAST["yuki"] = YUKI
+SHOULDER = {-1: (-56, 140), 1: (56, 140)}
+UPPER, FORE = 56, 52
+_STK = (30, 26, 34)
+
+
+def draw_body(cv, lk, st):
+    walk = st.walk
+    if lk is not YUKI and lk.style != "bob":
+        pass
+    breath = math.sin(st.t * 2.2) * 1.5
+    if st.parts == "full":
+        for sx in (-1, 1):
+            ph = math.sin(walk * 2 * math.pi + (0 if sx < 0 else math.pi)) if walk else 0
+            fx = sx * 26 + ph * 20
+            lift = max(0, math.cos(walk * 2 * math.pi + (0 if sx < 0 else math.pi))) * 12 if walk else 0
+            cv.drawPath(_line(sx * 22, 252, fx, 346 - lift), line_paint(_STK, 7))
+            cv.drawPath(_line(fx, 346 - lift, fx + 16, 348 - lift), line_paint(_STK, 7))
+    # vest
+    vp = smooth_closed([(-48, 126), (-52, 170), (-56, 222), (0, 228 + breath), (56, 222), (52, 170), (48, 126), (0, 122)], 0.45)
+    cv.drawPath(vp, fill_paint(lk.top))
+    cv.save(); cv.clipPath(vp, skia.ClipOp.kIntersect, True)
+    for k in range(7):
+        cv.drawPath(_line(-50 + k * 16, 130, -54 + k * 16, 224), line_paint(shade(lk.top, -0.18), 2.4, 110))
+    cv.restore()
+    cv.drawPath(vp, line_paint(LINE, 4))
+    # open vest: dark inner shirt + zip line
+    cv.drawPath(smooth_closed([(-10, 134), (10, 134), (4, 160), (-4, 160)], 0.2), fill_paint((92, 88, 100)))
+    cv.drawPath(_line(0, 160, 0, 224), line_paint(LINE, 3))
+    if st.parts == "full":
+        sp = smooth_closed([(-52, 218), (-66, 252), (0, 258), (66, 252), (52, 218), (0, 222)], 0.4)
+        cv.drawPath(sp, fill_paint(lk.bottom)); cv.drawPath(sp, line_paint(LINE, 4))
+
+
+def _line(x0, y0, x1, y1):
+    p = skia.Path(); p.moveTo(x0, y0); p.lineTo(x1, y1); return p
+
+
+def draw_scarf(cv, lk, st):
+    if not lk.scarf:
+        return
+    sc = lk.scarf
+    loop = smooth_closed([(-70, 114), (-62, 142), (-20, 152), (24, 152), (64, 142), (72, 114), (30, 128), (-30, 128)], 0.55)
+    cv.drawPath(loop, fill_paint(sc))
+    cv.save(); cv.clipPath(loop, skia.ClipOp.kIntersect, True)
+    for k in range(9):
+        cv.drawPath(_line(-64 + k * 16, 118, -60 + k * 16, 152), line_paint(shade(sc, -0.2), 2.4, 120))
+    cv.restore()
+    cv.drawPath(loop, line_paint(LINE, 4))
+
+
+def _hand(cv, lk, kind, wr, d, side):
+    x, y = wr
+    cv.save()
+    cv.translate(x, y)
+    cv.rotate(math.degrees(math.atan2(d[0], -d[1])))
+    if kind in ("open", "point"):
+        n = 3 if kind == "open" else 1
+        for i in range(n):
+            a = (i - (n - 1) / 2) * 0.55
+            cv.drawPath(_line(0, -4, math.sin(a) * 24, -math.cos(a) * 24 - 2), line_paint(_STK, 6))
+        cv.drawCircle(0, 2, 11, fill_paint(_STK))
+    elif kind == "thumb":
+        cv.drawCircle(0, 2, 12, fill_paint(_STK))
+        cv.drawPath(_line(side * 4, -4, side * 5, -24), line_paint(_STK, 8))
+    else:
+        cv.drawOval(skia.Rect.MakeLTRB(-11, -6, 11, 14), fill_paint(_STK))
+    cv.restore()
+
+
+def _arm(cv, lk, st, side, wiggle):
+    cur, prv = pose_def(st.pose), pose_def(st.prev)
+    key = "L" if side == -1 else "R"
+    a1c, a2c, hk = cur[key]
+    a1p, a2p, _ = prv[key]
+    k = back_out(st.blend, 1.3) if st.blend < 1 else 1.0
+    a1, a2 = lerp(a1p, a1c, k), lerp(a2p, a2c, k)
+    w = math.sin(st.t * 7.5 + (2 if side < 0 else 0)) * 5 * wiggle
+    idle = math.sin(st.t * 1.7 + side) * 2.5
+    a2 += w + idle + st.beat * 12 * (1 if a2c > 60 else 0)
+    a1 += idle * 0.5
+    sh, el, wr, d2 = arm_pts(side, a1, a2)
+    p = skia.Path(); p.moveTo(*sh); p.lineTo(*el); p.lineTo(*wr)
+    cv.drawPath(p, line_paint(_STK, 7))
+    _hand(cv, lk, hk, wr, d2, side)

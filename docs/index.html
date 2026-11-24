@@ -246,10 +246,8 @@ async function poll(){
     const runs=r.ok?(await r.json()).workflow_runs:[];
     for(const j of open){
       const t0=new Date(j.sent).getTime()-60000;
-      // runs show the job id only through the release; match by time order (oldest unmatched run after the click)
       if(!j.run){
-        const taken=new Set(jobs.map(x=>x.run).filter(Boolean));
-        const cand=runs.filter(x=>new Date(x.created_at).getTime()>=t0&&!taken.has(x.id)).sort((a,b)=>new Date(a.created_at)-new Date(b.created_at))[0];
+        const cand=runs.find(x=>(x.display_title||x.name||"").includes(j.id));
         if(cand){j.run=cand.id;j.url=cand.html_url}
       }
       const run=runs.find(x=>x.id===j.run);

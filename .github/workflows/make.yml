@@ -1,4 +1,5 @@
 name: Make toon video (test)
+run-name: Make toon video ${{ github.event.inputs.job }}
 
 on:
   workflow_dispatch:

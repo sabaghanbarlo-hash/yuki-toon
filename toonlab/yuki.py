@@ -1178,10 +1178,15 @@ def _eyes(cv, lk, st, fd, gx, gy):
         return _old_eyes(cv, lk, st, fd, gx, gy)
     sz = {"open": 1.0, "tear": 1.0, "sparkle": 1.1, "wide": 1.25, "small": 0.7}[kind]
     for sx in (-1, 1):
-        ex, y = sx * 58 + gx * 7, 18 + gy * 5
-        rx, ry = 13 * sz, 19 * sz
+        ex, y = sx * 56 + gx * 7, 20 + gy * 5
+        rx, ry = 18 * sz, 25 * sz
         cv.drawOval(skia.Rect.MakeLTRB(ex - rx, y - ry, ex + rx, y + ry), fill_paint(INKY))
-        cv.drawCircle(ex + rx * 0.3, y - ry * 0.35, rx * 0.38, fill_paint((255, 255, 255)))
+        cv.drawCircle(ex + rx * 0.28, y - ry * 0.34, rx * 0.4, fill_paint((255, 255, 255)))
+        cv.drawCircle(ex - rx * 0.35, y + ry * 0.38, rx * 0.2, fill_paint((255, 255, 255), 230))
+        lash = smooth_open([(ex - rx - 1, y - ry * 0.25), (ex - rx * 0.6, y - ry * 0.9), (ex, y - ry - 2), (ex + rx * 0.6, y - ry * 0.9), (ex + rx + 1, y - ry * 0.25)], 0.9)
+        cv.drawPath(lash, line_paint(INKY, 5.5))
+        for k, (dx, dy) in enumerate(((10, -5), (14, 2))):      # outer lash flicks
+            cv.drawPath(_line(ex + sx * (rx - 1), y - ry * (0.4 - k * 0.25), ex + sx * (rx + dx), y - ry * (0.4 - k * 0.25) + dy - 6), line_paint(INKY, 4.2))
     if lk.glasses:
         for sx in (-1, 1):
             cv.drawCircle(sx * 58 + gx * 7, 18, 40, line_paint(LINE, 4.5))
@@ -1337,7 +1342,7 @@ def _arm(cv, lk, st, side, wiggle):
 # ====================================================================== v7: smaller face inside a bigger bob
 _v3_draw_head = draw_head
 FACE_K, HEAD_K = 0.8, 0.86
-BANG = "curtain"
+BANG = "short"
 
 
 def draw_head(cv, lk, st):

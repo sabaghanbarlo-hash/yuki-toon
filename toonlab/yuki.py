@@ -989,3 +989,253 @@ def _arm(cv, lk, st, side, wiggle):
     cuff0 = (wr[0] - d2[0] * 10, wr[1] - d2[1] * 10)
     tube(cv, [cuff0, (wr[0] + d2[0] * 2, wr[1] + d2[1] * 2)], 36, shade(col, -0.16), 3.6, ink=LINE)
     _hand(cv, lk, hk, wr, d2, side)
+
+
+# ====================================================================== v4: selectable eye + hair designs
+DESIGN = {"eyes": "doodle", "hair": "shag"}
+
+
+def set_design(eyes=None, hair=None):
+    if eyes:
+        DESIGN["eyes"] = eyes
+    if hair:
+        DESIGN["hair"] = hair
+
+
+def _star(cv, x, y, r, a=255):
+    p = skia.Path()
+    p.moveTo(x, y - r)
+    p.quadTo(x + r * 0.12, y - r * 0.12, x + r, y)
+    p.quadTo(x + r * 0.12, y + r * 0.12, x, y + r)
+    p.quadTo(x - r * 0.12, y + r * 0.12, x - r, y)
+    p.quadTo(x - r * 0.12, y - r * 0.12, x, y - r)
+    p.close()
+    cv.drawPath(p, fill_paint((255, 255, 255), a))
+
+
+def _eyes(cv, lk, st, fd, gx, gy):
+    kind = fd["eye"]
+    if kind not in ("open", "tear", "sparkle", "wide", "small") or (st.blink and st.blink > 0):
+        return _old_eyes(cv, lk, st, fd, gx, gy)
+    style = DESIGN["eyes"]
+    sz = {"open": 1.0, "tear": 1.03, "sparkle": 1.06, "wide": 1.14, "small": 0.7}[kind]
+    for sx in (-1, 1):
+        ex, y = sx * 62 + gx * 7, 14 + gy * 5
+        if style == "dot":
+            rx, ry = 24 * sz, 31 * sz
+            eye = skia.Rect.MakeLTRB(ex - rx, y - ry, ex + rx, y + ry)
+            cv.drawOval(eye, fill_paint((46, 32, 54)))
+            cv.drawCircle(ex + rx * 0.3 + gx * 2, y - ry * 0.3, rx * 0.4, fill_paint((255, 255, 255)))
+            cv.drawCircle(ex - rx * 0.36, y + ry * 0.4, rx * 0.19, fill_paint((255, 255, 255), 235))
+            lash = smooth_open([(ex - rx - 2, y - ry * 0.35), (ex - rx * 0.6, y - ry * 0.92), (ex, y - ry - 2), (ex + rx * 0.6, y - ry * 0.92), (ex + rx + 2, y - ry * 0.35)], 0.9)
+            cv.drawPath(lash, line_paint(LINE, 6))
+        elif style == "amber":
+            rx, ry = 27 * sz, 34 * sz
+            eye = skia.Path.Oval(skia.Rect.MakeLTRB(ex - rx, y - ry, ex + rx, y + ry))
+            cv.save()
+            cv.clipPath(eye, skia.ClipOp.kIntersect, True)
+            cv.drawPaint(_grad(0, y - ry, 0, y + ry, (58, 30, 36), (226, 140, 92)))
+            cv.drawOval(skia.Rect.MakeLTRB(ex - rx * 0.7, y + ry * 0.2, ex + rx * 0.7, y + ry * 1.3), fill_paint((255, 214, 150), 150))
+            cv.restore()
+            cv.drawOval(skia.Rect.MakeLTRB(ex - rx * 0.6 + gx * 2, y - ry * 0.72, ex - rx * 0.02 + gx * 2, y - ry * 0.14), fill_paint((255, 255, 255)))
+            cv.drawCircle(ex + rx * 0.34, y + ry * 0.5, rx * 0.14, fill_paint((255, 255, 255), 235))
+            lash = smooth_open([(ex - rx - 1, y - ry * 0.2), (ex - rx * 0.7, y - ry * 0.85), (ex, y - ry - 2), (ex + rx * 0.7, y - ry * 0.85), (ex + rx + 1, y - ry * 0.2)], 0.9)
+            cv.drawPath(lash, line_paint(LINE, 6.5))
+            cv.drawLine(ex + sx * (rx + 1), y - ry * 0.2, ex + sx * (rx + 8), y - ry * 0.45, line_paint(LINE, 4.6))
+        else:  # "star": teal gem eyes with a sparkle star
+            rx, ry = 28 * sz, 36 * sz
+            eye = skia.Path.Oval(skia.Rect.MakeLTRB(ex - rx, y - ry, ex + rx, y + ry))
+            cv.save()
+            cv.clipPath(eye, skia.ClipOp.kIntersect, True)
+            cv.drawPaint(_grad(0, y - ry, 0, y + ry, (22, 56, 92), (120, 224, 218)))
+            cv.drawOval(skia.Rect.MakeLTRB(ex - rx * 0.76, y + ry * 0.05, ex + rx * 0.76, y + ry * 1.3), fill_paint((190, 250, 240), 130))
+            cv.restore()
+            _star(cv, ex + rx * 0.28 + gx * 2, y - ry * 0.34, rx * 0.46)
+            cv.drawCircle(ex - rx * 0.34, y + ry * 0.42, rx * 0.15, fill_paint((255, 255, 255), 235))
+            cv.drawCircle(ex + rx * 0.3, y + ry * 0.62, rx * 0.08, fill_paint((255, 255, 255), 220))
+            lash = smooth_open([(ex - rx - 1, y), (ex - rx * 0.72, y - ry * 0.8), (ex, y - ry - 3), (ex + rx * 0.72, y - ry * 0.8), (ex + rx + 1, y)], 0.9)
+            cv.drawPath(lash, line_paint(LINE, 7.5))
+            cv.drawPath(smooth_open([(ex + sx * (rx + 1), y - 2), (ex + sx * (rx + 8), y - 9), (ex + sx * (rx + 14), y - 12)], 0.7), line_paint(LINE, 4.6))
+        if lk.glasses:
+            cv.drawCircle(ex, y, 42, fill_paint((255, 255, 255), 40))
+            cv.drawCircle(ex, y, 42, line_paint(LINE, 4.5))
+    if lk.glasses:
+        cv.drawLine(-24 + gx * 7, 12, 24 + gx * 7, 12, line_paint(LINE, 4.5))
+
+
+def _dome(p):
+    p.moveTo(-154, -22)
+    p.cubicTo(-178, -136, -84, -186, 0, -184)
+    p.cubicTo(84, -186, 178, -136, 154, -22)
+
+
+def _fringe_path():
+    h = DESIGN["hair"]
+    p = skia.Path()
+    _dome(p)
+    if h == "blunt":
+        p.cubicTo(164, 24, 164, 66, 152, 96)                     # right side: stops at the jaw, rounded
+        p.quadTo(146, 112, 130, 100)
+        p.quadTo(126, 50, 126, -6)
+        p.quadTo(126, -40, 100, -54)
+        p.cubicTo(60, -34, -60, -34, -100, -54)                  # blunt, softly curved bangs
+        p.quadTo(-126, -40, -126, -6)
+        p.quadTo(-126, 50, -130, 100)
+        p.quadTo(-146, 112, -152, 96)
+        p.cubicTo(-164, 66, -164, 24, -154, -22)
+    elif h == "sweep":
+        p.cubicTo(164, 24, 160, 56, 148, 78)                     # right side: short, tucked
+        p.quadTo(138, 84, 130, 70)
+        p.quadTo(128, 20, 124, -10)
+        p.quadTo(126, -44, 104, -66)                             # forehead opening on the right
+        p.quadTo(70, -98, 34, -100)                              # the parting
+        p.cubicTo(-10, -84, -70, -52, -112, -8)                  # one long swoop to the left temple
+        p.quadTo(-128, 20, -134, 64)
+        p.quadTo(-142, 104, -154, 116)                           # long left lock
+        p.cubicTo(-166, 76, -168, 28, -154, -22)
+    else:  # layered: small wispy bangs
+        p.cubicTo(164, 24, 160, 60, 150, 84)
+        p.quadTo(138, 70, 130, 50)
+        p.quadTo(128, 10, 126, -10)
+        p.quadTo(124, -34, 108, -48)
+        tips = [(86, -42), (60, -36), (34, -46), (8, -34), (-18, -46), (-46, -36), (-74, -44), (-100, -34)]
+        for i, (tx, ty) in enumerate(tips):
+            p.quadTo(tx + 14, ty - 22, tx, ty - 2)
+            p.quadTo(tx - 10, ty - 24, tx - 14, ty - 26) if i < len(tips) - 1 else None
+        p.quadTo(-122, -20, -126, -6)
+        p.quadTo(-128, 20, -130, 50)
+        p.quadTo(-138, 70, -150, 84)
+        p.cubicTo(-160, 60, -164, 24, -154, -22)
+    p.close()
+    return p
+
+
+def _hair_back(cv, lk, st):
+    if lk.style != "bob":
+        return _old_hair_back(cv, lk, st)
+    h = DESIGN["hair"]
+    bot = {"blunt": 112, "sweep": 116, "layered": 96}[h]
+    p = skia.Path()
+    p.moveTo(-156, -26)
+    p.cubicTo(-176, 30, -174, 80, -150, bot + 6)
+    p.quadTo(-104, bot + 22, -62, bot - 2)
+    p.quadTo(0, bot - 16, 62, bot - 2)
+    p.quadTo(104, bot + 22, 150, bot + 6)
+    p.cubicTo(174, 80, 176, 30, 156, -26)
+    p.close()
+    cv.drawPath(p, _grad(0, -20, 0, 130, shade(lk.hair, -0.22), shade(lk.hair, 0.02)))
+    cv.drawPath(p, line_paint(LINE, OW))
+
+
+def _fringe(cv, lk, st):
+    if lk.style != "bob":
+        return _old_fringe(cv, lk, st)
+    h = DESIGN["hair"]
+    c = lk.hair
+    p = _fringe_path()
+    _hair_fill(cv, lk, p)
+    cv.save()
+    cv.clipPath(p, skia.ClipOp.kIntersect, True)
+    cv.drawPath(smooth_open([(-96, -124), (-52, -152), (12, -158), (70, -144)], 0.9), line_paint((226, 232, 255), 9, 140))
+    if h == "blunt":
+        for x in (-46, 0, 46):
+            cv.drawPath(smooth_open([(x, -76), (x + 2, -52), (x, -38)], 0.8), line_paint(shade(c, -0.4), 3, 150))
+    elif h == "sweep":
+        for k in range(4):
+            cv.drawPath(smooth_open([(40 - k * 4, -100 + k * 6), (-20 - k * 22, -80 + k * 16), (-90 - k * 8, -26 + k * 12)], 0.9), line_paint(shade(c, -0.4), 2.8, 110))
+    cv.restore()
+    cv.drawPath(p, line_paint(LINE, OW))
+    if h == "layered":      # two thin face-framing strands on each side
+        for sx in (-1, 1):
+            for off, ln in ((0, 118), (16, 104)):
+                s = skia.Path()
+                x0 = sx * (122 + off * 0.5)
+                s.moveTo(x0, -4)
+                s.quadTo(x0 + sx * 12, 52, x0 + sx * 2, ln)
+                s.quadTo(x0 - sx * 6, 52, x0 - sx * 12, -4)
+                s.close()
+                cv.drawPath(s, fill_paint(shade(c, -0.04)))
+                cv.drawPath(s, line_paint(LINE, OW - 0.6))
+    a = skia.Path()
+    a.moveTo(-4, -180)
+    a.quadTo(10, -218, 52, -214)
+    a.quadTo(28, -202, 22, -178)
+    a.close()
+    cv.drawPath(a, fill_paint(shade(c, -0.05)))
+    cv.drawPath(a, line_paint(LINE, OW))
+
+
+# ====================================================================== v5: crayon-doodle look (from 2nd reference)
+_v4_eyes, _v4_fringe_path, _v4_hair_back, _v4_fringe = _eyes, _fringe_path, _hair_back, _fringe
+INKY = (24, 20, 28)
+
+
+def _eyes(cv, lk, st, fd, gx, gy):
+    if DESIGN["eyes"] != "doodle":
+        return _v4_eyes(cv, lk, st, fd, gx, gy)
+    kind = fd["eye"]
+    if kind not in ("open", "tear", "sparkle", "wide", "small") or (st.blink and st.blink > 0):
+        return _old_eyes(cv, lk, st, fd, gx, gy)
+    sz = {"open": 1.0, "tear": 1.0, "sparkle": 1.1, "wide": 1.25, "small": 0.7}[kind]
+    for sx in (-1, 1):
+        ex, y = sx * 58 + gx * 7, 18 + gy * 5
+        rx, ry = 13 * sz, 19 * sz
+        cv.drawOval(skia.Rect.MakeLTRB(ex - rx, y - ry, ex + rx, y + ry), fill_paint(INKY))
+        cv.drawCircle(ex + rx * 0.3, y - ry * 0.35, rx * 0.38, fill_paint((255, 255, 255)))
+    if lk.glasses:
+        for sx in (-1, 1):
+            cv.drawCircle(sx * 58 + gx * 7, 18, 40, line_paint(LINE, 4.5))
+        cv.drawLine(-18, 16, 18, 16, line_paint(LINE, 4.5))
+
+
+def _fringe_path():
+    if DESIGN["hair"] != "shag":
+        return _v4_fringe_path()
+    p = skia.Path()
+    _dome(p)
+    p.cubicTo(166, 20, 168, 70, 160, 108)             # right side, long
+    p.lineTo(150, 100); p.lineTo(152, 128); p.lineTo(136, 108)   # ragged tips
+    p.quadTo(128, 50, 124, -6)
+    p.quadTo(120, -46, 96, -64)                       # forehead opening
+    p.quadTo(64, -62, 40, -48)                        # thin side-swept bang
+    p.cubicTo(24, -20, 4, 20, -22, 56)
+    p.cubicTo(-30, 24, -46, -14, -50, -42)
+    p.cubicTo(-70, -48, -100, -44, -120, -34)
+    p.quadTo(-128, 20, -128, 60)
+    p.lineTo(-134, 112); p.lineTo(-146, 100); p.lineTo(-152, 126)
+    p.lineTo(-162, 104)
+    p.cubicTo(-170, 70, -168, 20, -154, -22)
+    p.close()
+    return p
+
+
+def _hair_back(cv, lk, st):
+    if DESIGN["hair"] != "shag" or lk.style != "bob":
+        return _v4_hair_back(cv, lk, st)
+    p = skia.Path()
+    p.moveTo(-156, -26)
+    p.cubicTo(-178, 40, -176, 90, -162, 124)
+    p.lineTo(-148, 108); p.lineTo(-136, 134); p.lineTo(-112, 112)
+    p.quadTo(0, 90, 112, 112)
+    p.lineTo(136, 134); p.lineTo(148, 108); p.lineTo(162, 124)
+    p.cubicTo(176, 90, 178, 40, 156, -26)
+    p.close()
+    cv.drawPath(p, fill_paint(lk.hair))
+    cv.drawPath(p, line_paint(LINE, OW))
+
+
+def _fringe(cv, lk, st):
+    if DESIGN["hair"] != "shag" or lk.style != "bob":
+        return _v4_fringe(cv, lk, st)
+    p = _fringe_path()
+    cv.drawPath(p, fill_paint(lk.hair))
+    cv.save()
+    cv.clipPath(p, skia.ClipOp.kIntersect, True)
+    # crayon hatching
+    for k in range(16):
+        x = -140 + k * 18
+        cv.drawPath(smooth_open([(x, -170), (x + 10, -120), (x + 22, -70)], 0.8), line_paint((70, 62, 84), 2.6, 120))
+    for k in range(5):
+        cv.drawPath(smooth_open([(20 - k * 12, -50 + k * 4), (-6 - k * 12, 0 + k * 6), (-30 - k * 10, 40 + k * 4)], 0.9), line_paint((70, 62, 84), 2.4, 110))
+    cv.restore()
+    cv.drawPath(p, line_paint(LINE, OW - 0.6))

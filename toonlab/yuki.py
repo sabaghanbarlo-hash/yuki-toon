@@ -1197,9 +1197,10 @@ def _fringe_path():
     p.lineTo(150, 100); p.lineTo(152, 128); p.lineTo(130, 106)   # ragged tips
     p.quadTo(112, 50, 104, -2)
     p.cubicTo(100, -34, 84, -58, 52, -58)             # curved forehead opening
-    p.quadTo(40, -50, 34, -40)                        # thin side-swept bang
-    p.cubicTo(24, -14, 6, 24, -18, 56)
-    p.cubicTo(-28, 24, -44, -10, -50, -38)
+    p.quadTo(40, -56, 30, -50)                        # crescent side-swept bang
+    p.cubicTo(24, -16, 2, 24, -36, 60)
+    p.cubicTo(-14, 20, -12, -18, -22, -46)
+    p.cubicTo(-30, -52, -44, -50, -50, -42)
     p.cubicTo(-64, -50, -96, -40, -106, -8)
     p.quadTo(-112, 40, -122, 80)
     p.lineTo(-134, 112); p.lineTo(-146, 100); p.lineTo(-152, 126)
@@ -1343,6 +1344,7 @@ def draw_head(cv, lk, st):
     gx, gy = st.gx + st.prof * 0.8, st.gy
     cv.save()
     cv.translate(0, 120); cv.rotate(st.tilt); cv.translate(0, -120)
+    cv.translate(0, 12)
     cv.translate(0, 64); cv.scale(HEAD_K, HEAD_K); cv.translate(0, -64)
     _hair_back(cv, lk, st)
     cv.save()
@@ -1369,4 +1371,21 @@ def draw_head(cv, lk, st):
     _brows(cv, lk, st, fd, gx)
     cv.restore()
     _fx(cv, lk, st, fd)
+    cv.restore()
+
+
+def draw_character(cv, lk, x, y, scale, st):
+    cv.save()
+    cv.translate(x, y)
+    cv.scale(scale * st.sx * (-1 if st.flip else 1), scale * st.sy)
+    cv.translate(0, math.sin(st.t * 2.2) * 2.0)
+    full = st.parts in ("full", "torso", "bust")
+    if full:
+        draw_body(cv, lk, st)
+    draw_head(cv, lk, st)
+    if full:
+        draw_scarf(cv, lk, st)       # scarf wraps in front of the chin so head and body join
+        wig = st.wiggle * (0.35 + st.amp * 1.1)
+        for side in (-1, 1):
+            _arm(cv, lk, st, side, wig)
     cv.restore()

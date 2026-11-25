@@ -73,9 +73,9 @@ ol{padding-left:20px;margin:6px 0}
       <summary>How do I get a token? (2 minutes)</summary>
       <ol>
         <li>Open <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">GitHub &rarr; New fine-grained token</a>.</li>
-        <li>Name: <code>yuki-toon-site</code>. Expiration: 90 days or longer.</li>
-        <li>Repository access: <b>Only select repositories</b> &rarr; <code>yuki-toon</code>.</li>
-        <li>Permissions &rarr; Repository permissions &rarr; <b>Actions: Read and write</b>. Nothing else.</li>
+        <li>Name: <code>yuki-toon-site</code>. Expiration: the longest you are comfortable with.</li>
+        <li>Repository access: <b>Only select repositories</b> &rarr; <code>yuki-video</code>.</li>
+        <li>Permissions &rarr; Repository permissions &rarr; <b>Actions: Read and write</b> and <b>Contents: Read-only</b>. Nothing else.</li>
         <li>Generate the token, copy it, and paste it below.</li>
       </ol>
     </details>
@@ -113,7 +113,7 @@ ol{padding-left:20px;margin:6px 0}
       <div>
         <label for="voice">Voice</label>
         <select id="voice">
-          <option value="voicestudio">My cloned voice (slow, about 4 min per sentence)</option>
+          <option value="voicestudio">My cloned voice</option>
           <option value="babble">Quick test (no real voice, about 10 min)</option>
         </select>
       </div>
@@ -126,8 +126,8 @@ ol{padding-left:20px;margin:6px 0}
       </div>
       <div>
         <label for="maxs">Only the first N sentences</label>
-        <input id="maxs" type="number" min="0" max="999" value="4">
-        <p class="hint">0 = the whole script</p>
+        <input id="maxs" type="number" min="0" max="9999" value="0">
+        <p class="hint">0 = the whole script (leave it)</p>
       </div>
       <div>
         <label for="seed">Variation</label>
@@ -136,6 +136,8 @@ ol{padding-left:20px;margin:6px 0}
       </div>
     </div>
 
+    <label style="display:flex;gap:10px;align-items:center;margin-top:14px;font-weight:700"><input id="upload" type="checkbox" checked style="width:20px;height:20px"> Upload to my YouTube channel (Yuki's Mind Lab) when it is ready</label>
+    <p class="hint">Uploads are always private, so you can check the video in YouTube Studio before you publish it.</p>
     <div style="margin-top:18px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
       <button id="go" type="button">Make my video</button>
       <span id="goMsg" class="hint"></span>
@@ -152,7 +154,7 @@ ol{padding-left:20px;margin:6px 0}
 </div>
 
 <script>
-const OWNER="sabaghanbarlo-hash", REPO="yuki-toon", WORKFLOW="make.yml";
+const OWNER="sabaghanbarlo-hash", REPO="yuki-video", WORKFLOW="toon.yml";
 const API=`https://api.github.com/repos/${OWNER}/${REPO}`;
 const $=id=>document.getElementById(id);
 const store={
@@ -172,7 +174,7 @@ $("saveToken").onclick=async()=>{
   $("tokenMsg").textContent="Checking...";
   try{
     const r=await fetch(API,{headers:hdrs()});
-    $("tokenMsg").innerHTML=r.ok?'<span class="ok-msg">Connected to yuki-toon.</span>':'<span class="err">GitHub said no ('+r.status+'). Check the token and that it can access yuki-toon.</span>';
+    $("tokenMsg").innerHTML=r.ok?'<span class="ok-msg">Connected to yuki-video.</span>':'<span class="err">GitHub said no ('+r.status+'). Check the token and that it can access yuki-video.</span>';
   }catch(e){$("tokenMsg").innerHTML='<span class="err">No connection.</span>'}
 };
 $("clearToken").onclick=()=>{token="";$("token").value="";store.set("yt_token","");$("tokenMsg").textContent="Token removed from this browser."};
@@ -181,15 +183,21 @@ function sentences(text){
   const clean=text.split("\n").filter(l=>!/^\s*#/.test(l)).join(" ").replace(/\[[^\]]*\]/g,"");
   return (clean.match(/[^.!?]+[.!?]+["')\]]*|[^.!?]+$/g)||[]).filter(s=>s.trim().length>1).length;
 }
+function plan(n,voice){
+  const shards=Math.min(20,Math.max(1,Math.ceil(n/6)));
+  const per=Math.ceil(n/shards);
+  const mins=(voice==="voicestudio"?per*4+10:3)+Math.round(n*0.2)+6;
+  return {shards,mins};
+}
 function updateEst(){
   const text=$("script").value;store.set("yt_script",text);
   const n=sentences(text), max=+$("maxs").value||0, used=max&&max<n?max:n;
-  const voice=$("voice").value;
-  const mins=voice==="voicestudio"?used*4+8:Math.max(10,Math.round(used*0.6)+8);
-  const h=mins>=90?(mins/60).toFixed(1)+" hours":mins+" min";
-  let html=`<span class="pill">${n} sentences found</span><span class="pill">${used} will be made</span><span class="pill ${mins>300?'warn':''}">about ${h}</span>`;
-  if(mins>330)html+=`<span class="pill warn">Over the 6 hour limit: lower "first N sentences"</span>`;
-  if(text.length>30000)html+=`<span class="pill warn">Script too long (30,000 characters max)</span>`;
+  const voice=$("voice").value, pl=plan(used,voice);
+  const h=pl.mins>=90?(pl.mins/60).toFixed(1)+" hours":pl.mins+" min";
+  let html=`<span class="pill">${n} sentences found</span><span class="pill">${used} will be made</span><span class="pill">about ${h}</span>`;
+  if(voice==="voicestudio"&&used>1)html+=`<span class="pill">${pl.shards} machines work at the same time</span>`;
+  if(used>1400)html+=`<span class="pill warn">Very long: split it into two videos</span>`;
+  if(text.length>60000)html+=`<span class="pill warn">Script too long (60,000 characters max)</span>`;
   $("est").innerHTML=html;
 }
 ["script","maxs","voice"].forEach(i=>$(i).addEventListener("input",updateEst));updateEst();
@@ -202,17 +210,17 @@ $("go").onclick=async()=>{
   const text=$("script").value.trim();
   if(!token){$("err").textContent="Connect first: paste your GitHub token in step 1.";$("setup").scrollIntoView({behavior:"smooth"});return}
   if(!text){$("err").textContent="Paste a script first.";return}
-  if(text.length>30000){$("err").textContent="The script is too long (30,000 characters max).";return}
+  if(text.length>60000){$("err").textContent="The script is too long (60,000 characters max).";return}
   $("go").disabled=true;$("goMsg").textContent="Sending to GitHub...";
   const id=rid(), sent=new Date().toISOString();
-  const inputs={script:"scripts/chart-test.txt",voice:$("voice").value,max_sentences:String(Math.max(0,+$("maxs").value||0)),format:$("format").value,seed:String(Math.max(0,+$("seed").value||0)),script_text:text,job:id};
+  const inputs={voice:$("voice").value,max_sentences:String(Math.max(0,+$("maxs").value||0)),format:$("format").value,seed:String(Math.max(0,+$("seed").value||0)),upload:$("upload").checked?"true":"false",script_text:text,job:id};
   try{
     const r=await fetch(`${API}/actions/workflows/${WORKFLOW}/dispatches`,{method:"POST",headers:{...hdrs(),"Content-Type":"application/json"},body:JSON.stringify({ref:"main",inputs})});
     if(r.status!==204){
       let m="";try{m=(await r.json()).message}catch(e){}
-      $("err").textContent=r.status===401||r.status===403||r.status===404?`GitHub refused (${r.status}). The token needs "Actions: Read and write" on yuki-toon. ${m}`:`Could not start the render (${r.status}). ${m}`;
+      $("err").textContent=r.status===401||r.status===403||r.status===404?`GitHub refused (${r.status}). The token needs "Actions: Read and write" on yuki-video. ${m}`:`Could not start the render (${r.status}). ${m}`;
     }else{
-      jobs.unshift({id,title:title(text),sent,voice:inputs.voice,format:inputs.format,n:inputs.max_sentences});
+      jobs.unshift({id,title:title(text),sent,voice:inputs.voice,format:inputs.format,n:inputs.max_sentences,count:sentences(text),upload:inputs.upload==='true'});
       jobs=jobs.slice(0,30);store.set("yt_jobs",jobs);$("goMsg").textContent="Started! Watch it below.";renderJobs();poll();
       $("jobs").scrollIntoView({behavior:"smooth"});
     }
@@ -227,10 +235,10 @@ function renderJobs(){
     const st=j.state||"queued", cls=st==="done"?"ok":st==="failed"?"bad":"run";
     const label={queued:"Waiting to start",running:"Making your video",done:"Ready",failed:"Failed"}[st]||st;
     const elapsed=fmt(Date.now()-new Date(j.sent).getTime());
-    const per=j.voice==="voicestudio"?4:0.6, nn=(+j.n||0), est=(j.voice==="voicestudio"?(nn||10)*per+8:15)*60000;
+    const used=(+j.n||0)?Math.min(+j.n,j.count||+j.n):(j.count||10), est=plan(used,j.voice).mins*60000;
     const pct=st==="done"?100:st==="failed"?100:Math.min(95,Math.round((Date.now()-new Date(j.sent).getTime())/est*100));
     let body="";
-    if(st==="done"&&j.video){body=`<video controls preload="metadata" src="${j.video}"></video><p><a href="${j.video}" download>Download the video</a></p>`}
+    if(st==="done"&&j.video){body=`<video controls preload="metadata" src="${j.video}"></video><p><a href="${j.video}" download>Download the video</a>${j.yt?` &middot; <a href="${j.yt}" target="_blank" rel="noopener">Open on YouTube (private)</a>`:(j.upload?" &middot; <span class=\"hint\">YouTube upload finishing...</span>":"")}</p>`}
     else if(st==="failed"){body=`<p class="err">Something went wrong. <a href="${j.url||'https://github.com/'+OWNER+'/'+REPO+'/actions'}" target="_blank" rel="noopener">See the log</a>, or tell Claude the job code <code>${j.id}</code>.</p>`}
     else{body=`<div class="bar"><i style="width:${pct}%"></i></div><p class="hint">${elapsed} so far. You can close this page; the video keeps rendering and shows up here when you return.</p>`}
     return `<div class="job"><div class="top"><b>${esc(j.title)}</b><span class="status ${cls}">${label}</span></div><div class="hint">${j.voice==="voicestudio"?"Your voice":"Quick test"} &middot; ${j.format==="short"?"9:16":"16:9"} &middot; code ${j.id}${j.url?` &middot; <a href="${j.url}" target="_blank" rel="noopener">GitHub log</a>`:""}</div>${body}</div>`;
@@ -239,7 +247,7 @@ function renderJobs(){
 function esc(s){return s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
 
 async function poll(){
-  const open=jobs.filter(j=>j.state!=="done"&&j.state!=="failed");
+  const open=jobs.filter(j=>(j.state!=="done"&&j.state!=="failed")||(j.state==="done"&&j.upload&&!j.yt&&Date.now()-new Date(j.sent).getTime()<86400000));
   if(!open.length){renderJobs();return}
   try{
     const r=await fetch(`${API}/actions/workflows/${WORKFLOW}/runs?event=workflow_dispatch&per_page=30`,{headers:hdrs()});
@@ -254,10 +262,11 @@ async function poll(){
       if(run){
         j.state=run.status==="completed"?(run.conclusion==="success"?"finishing":"failed"):(run.status==="queued"?"queued":"running");
       }
-      if(j.state==="finishing"||(!run&&j.run)){
+      if(j.state==="finishing"||(j.state==="done"&&j.upload&&!j.yt&&Date.now()-new Date(j.sent).getTime()<86400000)){
         const rr=await fetch(`${API}/releases/tags/web-${j.id}`,{headers:hdrs()});
-        if(rr.ok){const rel=await rr.json();const a=(rel.assets||[]).find(x=>/\.mp4$/.test(x.name));if(a){j.video=a.browser_download_url;j.state="done"}}
-        else if(j.state==="finishing"&&Date.now()-new Date(j.sent).getTime()>0){j.tries=(j.tries||0)+1;if(j.tries>6)j.state="failed"}
+        if(rr.ok){const rel=await rr.json();const a=(rel.assets||[]).find(x=>/\.mp4$/.test(x.name));if(a){j.video=a.browser_download_url;j.state="done"}
+          const m=(rel.body||"").match(/https:\/\/(?:www\.)?youtu[^\s)]+/);if(m)j.yt=m[0];}
+        else if(j.state==="finishing"){j.tries=(j.tries||0)+1;if(j.tries>6)j.state="failed"}
       }
       if(!j.state)j.state="queued";
     }

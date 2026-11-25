@@ -43,6 +43,8 @@ def main():
     ap.add_argument("--workers", type=int, default=None)
     ap.add_argument("--max-sentences", type=int)
     ap.add_argument("--out")
+    ap.add_argument("--shard", default=None, help="i/N: only voice every Nth sentence starting at i, then stop (used by parallel machines)")
+    ap.add_argument("--count", action="store_true", help="print the number of sentences and exit")
     ap.add_argument("--preview", default=None)
     a = ap.parse_args()
 
@@ -83,6 +85,9 @@ def main():
         sents = sents[: a.max_sentences]
     director.analyze(sents, a.seed)
     print(f"{len(sents)} sentences", flush=True)
+    if a.count:
+        return
+    a.shard = None if not a.shard else tuple(int(x) for x in a.shard.split("/"))
 
     if a.preview:
         pv = Path(a.preview); pv.mkdir(parents=True, exist_ok=True)
@@ -104,6 +109,9 @@ def main():
         return
 
     audio = A.synth_all(sents, a, tmp)
+    if a.shard:
+        print(f"shard {a.shard[0] + 1}/{a.shard[1]} voiced", flush=True)
+        return
     total = A.timeline(sents, audio)
     shots = director.make_shots(sents, a.seed, a.format)
     track, voice_t = A.mix(sents, audio, shots, total, music=not a.no_music)

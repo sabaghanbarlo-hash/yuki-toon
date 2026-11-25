@@ -13,7 +13,10 @@ def synth_all(sents, args, tmp):
     tmp = Path(tmp)
     (tmp / "voice").mkdir(parents=True, exist_ok=True)
     out = []
+    shard = getattr(args, "shard", None)          # (i, N): this machine only voices sentences n % N == i
     for n, s in enumerate(sents):
+        if shard and n % shard[1] != shard[0]:
+            out.append(None); continue
         key = hashlib.md5(f"t1|{args.tts}|{getattr(args, 'voice', '')}|{getattr(args, 'energy', 1)}|{getattr(args, 'speed', 1)}|{s['mood']}|{s['spoken']}".encode()).hexdigest()[:16]
         f = tmp / "voice" / f"{key}.npy"
         if f.exists():
